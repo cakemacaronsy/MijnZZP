@@ -14,12 +14,14 @@ export default function LoginScreen() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (err) {
-      setError(err.message);
-    } else {
-      navigate('/');
+    try {
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) setError(err.message);
+      else navigate('/');
+    } catch (e) {
+      setError(e.message || 'Sign in failed');
+    } finally {
+      setLoading(false);
     }
   };
 

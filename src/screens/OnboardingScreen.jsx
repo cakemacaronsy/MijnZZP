@@ -16,20 +16,28 @@ export default function OnboardingScreen() {
   const [favCats, setFavCats] = useState([]);
   const [isStarter, setIsStarter] = useState(false);
   const [meetsHours, setMeetsHours] = useState(true);
+  const [finishing, setFinishing] = useState(false);
 
   const toggleCat = (cat) => {
     setFavCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
   };
 
   const handleFinish = async () => {
-    await updateSettings({
-      businessType,
-      favCats,
-      isStarter,
-      workedHours: meetsHours ? 1225 : 0,
-      onboarded: true,
-    });
-    navigate('/');
+    if (finishing) return;
+    setFinishing(true);
+    try {
+      await updateSettings({
+        businessType,
+        favCats,
+        isStarter,
+        workedHours: meetsHours ? 1225 : 0,
+        onboarded: true,
+      });
+      navigate('/');
+    } catch (e) {
+      console.error('Failed to save onboarding:', e);
+      setFinishing(false);
+    }
   };
 
   const steps = [
@@ -120,7 +128,7 @@ export default function OnboardingScreen() {
             {step < 3 ? (
               <button className="btn btn-primary" onClick={() => setStep(s => s + 1)}>{t.ob.next}</button>
             ) : (
-              <button className="btn btn-primary" onClick={handleFinish}>{t.ob.start}</button>
+              <button className="btn btn-primary" onClick={handleFinish} disabled={finishing}>{finishing ? '...' : t.ob.start}</button>
             )}
           </div>
         </div>

@@ -14,12 +14,14 @@ export default function SignupScreen() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error: err } = await supabase.auth.signUp({ email, password });
-    setLoading(false);
-    if (err) {
-      setError(err.message);
-    } else {
-      navigate('/onboarding');
+    try {
+      const { error: err } = await supabase.auth.signUp({ email, password });
+      if (err) setError(err.message);
+      else navigate('/onboarding');
+    } catch (e) {
+      setError(e.message || 'Sign up failed');
+    } finally {
+      setLoading(false);
     }
   };
 
