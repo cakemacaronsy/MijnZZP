@@ -170,7 +170,7 @@ export default function ClientDetailScreen() {
                 {sessions.map(s => (
                   <tr key={s.id}>
                     <td>{s.date} {s.time && <span style={{ color: 'var(--color-text-secondary)' }}>{s.time}</span>}</td>
-                    <td>{t.clients.sessionTypes?.[s.type] || s.type || '-'}</td>
+                    <td>{t.clients.sessionTypes?.[s.sessionType] || s.sessionType || '-'}</td>
                     <td>{s.duration ? `${s.duration} min` : '-'}</td>
                     <td><Badge status={s.status || 'scheduled'} /></td>
                     <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.notes || '-'}</td>
