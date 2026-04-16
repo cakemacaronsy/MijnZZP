@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AppContext } from '../../hooks/useAppData';
 import { useTranslation } from '../../hooks/useTranslation';
 import { fmt } from '../../utils/format';
@@ -26,8 +26,25 @@ export default function ExpenseFormScreen() {
   const navigate = useNavigate();
   const { id } = useParams();
 
+  const [searchParams] = useSearchParams();
   const isEdit = !!id;
-  const [form, setForm] = useState(emptyExpense);
+
+  // Pre-fill from query params (e.g. from scanner OCR)
+  const initialFromParams = () => {
+    const has = searchParams.has('category') || searchParams.has('amount');
+    if (!has) return emptyExpense;
+    return {
+      ...emptyExpense,
+      category: searchParams.get('category') || emptyExpense.category,
+      description: searchParams.get('description') || '',
+      amount: searchParams.get('amount') || '',
+      vatRate: parseInt(searchParams.get('vatRate'), 10) || 21,
+      date: searchParams.get('date') || emptyExpense.date,
+      supplier: searchParams.get('supplier') || '',
+    };
+  };
+
+  const [form, setForm] = useState(initialFromParams);
   const [receiptName, setReceiptName] = useState('');
   const [saving, setSaving] = useState(false);
 

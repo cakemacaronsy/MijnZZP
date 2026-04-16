@@ -5,7 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { fmt } from '../../utils/format';
 import { CATS } from '../../constants/categories';
 import Modal from '../../components/shared/Modal';
-import { Plus, Search, Pencil, Trash2, Receipt } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Receipt, Camera } from 'lucide-react';
 import '../../components/shared/shared.css';
 
 export default function ExpenseListScreen() {
@@ -54,10 +54,16 @@ export default function ExpenseListScreen() {
       {/* Page header */}
       <div className="page-header">
         <h1>{t.exp.title}</h1>
-        <button className="btn btn-primary" onClick={() => navigate('/expenses/new')}>
-          <Plus size={16} />
-          {t.exp.add}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={() => navigate('/expenses/scan')}>
+            <Camera size={16} />
+            {t.scan?.title || 'Scan Receipt'}
+          </button>
+          <button className="btn btn-primary" onClick={() => navigate('/expenses/new')}>
+            <Plus size={16} />
+            {t.exp.add}
+          </button>
+        </div>
       </div>
 
       {/* Search */}

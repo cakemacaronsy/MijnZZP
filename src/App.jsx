@@ -13,6 +13,7 @@ import QuoteFormScreen from './screens/invoices/QuoteFormScreen';
 import QuotePreviewScreen from './screens/invoices/QuotePreviewScreen';
 import ExpenseListScreen from './screens/expenses/ExpenseListScreen';
 import ExpenseFormScreen from './screens/expenses/ExpenseFormScreen';
+import ScannerScreen from './screens/expenses/ScannerScreen';
 import PersonalListScreen from './screens/personal/PersonalListScreen';
 import PersonalFormScreen from './screens/personal/PersonalFormScreen';
 import TaxOverviewScreen from './screens/tax/TaxOverviewScreen';
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="expenses" element={<ExpenseListScreen />} />
             <Route path="expenses/new" element={<ExpenseFormScreen />} />
             <Route path="expenses/:id/edit" element={<ExpenseFormScreen />} />
+            <Route path="expenses/scan" element={<ScannerScreen />} />
             <Route path="personal" element={<PersonalListScreen />} />
             <Route path="personal/new" element={<PersonalFormScreen />} />
             <Route path="personal/:id/edit" element={<PersonalFormScreen />} />
