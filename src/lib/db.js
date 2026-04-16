@@ -22,16 +22,16 @@ async function getAll(table, orderBy = 'date') {
 }
 
 async function insert(table, row) {
-  const { data, error } = await supabase.from(table).insert(row).select().single();
+  const { data, error } = await supabase.from(table).insert(row).select();
   if (error) throw error;
-  return data;
+  return data?.[0] || row;
 }
 
 async function update(table, id, row) {
   const { id: _id, user_id: _uid, created_at: _c, ...fields } = row;
-  const { data, error } = await supabase.from(table).update(fields).eq('id', id).select().single();
+  const { data, error } = await supabase.from(table).update(fields).eq('id', id).select();
   if (error) throw error;
-  return data;
+  return data?.[0] || row;
 }
 
 async function remove(table, id) {
