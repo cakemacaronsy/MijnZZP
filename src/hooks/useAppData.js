@@ -16,13 +16,15 @@ export function useAppData() {
   const [personalItems, setPersonalItems] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
 
   const year = settings.year;
 
-  // Auth listener
+  // Auth listener — wait for initial session check before anything else
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
+      setAuthReady(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
@@ -30,9 +32,11 @@ export function useAppData() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load settings when user logs in
+  // Load settings when user logs in — keep loading=true until done
   useEffect(() => {
+    if (!authReady) return; // wait for initial auth check
     if (!user) { setLoading(false); return; }
+    setLoading(true); // block UI while settings load
     (async () => {
       try {
         const data = await db.getUserSettings();
@@ -40,10 +44,15 @@ export function useAppData() {
         if (data.profile) setProfile(p => ({ ...p, ...data.profile }));
       } catch (e) {
         console.warn('Failed to load settings:', e);
+        // Fall back to localStorage for onboarded flag so user isn't stuck in onboarding loop
+        try {
+          const cached = localStorage.getItem('mijnzzp_onboarded');
+          if (cached === 'true') setSettings(s => ({ ...s, onboarded: true }));
+        } catch (_) {}
       }
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, authReady]);
 
   // Refresh data when year or user changes
   const refreshInvoices = useCallback(async () => {
@@ -81,10 +90,17 @@ export function useAppData() {
 
   // Settings
   const updateSettings = useCallback(async (patch) => {
-    const next = { ...settings, ...patch };
-    setSettings(next);
-    try { await db.saveUserSettings(next); } catch (e) { console.warn(e); }
-  }, [settings]);
+    let next;
+    setSettings(prev => {
+      next = { ...prev, ...patch };
+      return next;
+    });
+    // Persist onboarded flag in localStorage as fast fallback
+    if (patch.onboarded !== undefined) {
+      try { localStorage.setItem('mijnzzp_onboarded', String(patch.onboarded)); } catch (_) {}
+    }
+    try { await db.saveUserSettings(next); } catch (e) { console.warn('Failed to save settings:', e); }
+  }, []);
 
   const updateProfile = useCallback(async (p) => {
     const next = { ...profile, ...p };
