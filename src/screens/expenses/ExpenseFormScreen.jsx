@@ -78,7 +78,7 @@ export default function ExpenseFormScreen() {
   };
 
   const handleSave = async () => {
-    if (!form.description && !form.category) return;
+    if (!form.description && !form.supplier) return;
     setSaving(true);
     try {
       await saveExpense({
@@ -90,9 +90,8 @@ export default function ExpenseFormScreen() {
         date: form.date,
         supplier: form.supplier,
         isAsset: form.isAsset,
-        depYears: form.isAsset ? parseInt(form.depYears, 10) || 5 : null,
-        residualValue: form.isAsset ? parseFloat(form.residualValue) || 0 : null,
-        receiptFile: form.receiptFile || null,
+        depYears: form.isAsset ? parseInt(form.depYears, 10) || 5 : 0,
+        residualValue: form.isAsset ? parseFloat(form.residualValue) || 0 : 0,
       });
       navigate('/expenses');
     } catch (e) {
