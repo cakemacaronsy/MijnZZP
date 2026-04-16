@@ -20,6 +20,8 @@ import TaxOverviewScreen from './screens/tax/TaxOverviewScreen';
 import ClientListScreen from './screens/clients/ClientListScreen';
 import ClientDetailScreen from './screens/clients/ClientDetailScreen';
 import ClientFormScreen from './screens/clients/ClientFormScreen';
+import SessionFormScreen from './screens/clients/SessionFormScreen';
+import PackageFormScreen from './screens/clients/PackageFormScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import AdvisorScreen from './screens/AdvisorScreen';
 import BankImportScreen from './screens/BankImportScreen';
@@ -90,6 +92,8 @@ export default function App() {
             <Route path="clients/new" element={<ClientFormScreen />} />
             <Route path="clients/:id" element={<ClientDetailScreen />} />
             <Route path="clients/:id/edit" element={<ClientFormScreen />} />
+            <Route path="clients/:id/sessions/new" element={<SessionFormScreen />} />
+            <Route path="clients/:id/packages/new" element={<PackageFormScreen />} />
             <Route path="settings" element={<SettingsScreen />} />
             <Route path="settings/backup" element={<SettingsScreen />} />
             <Route path="advisor" element={<AdvisorScreen />} />

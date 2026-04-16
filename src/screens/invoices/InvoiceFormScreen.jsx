@@ -92,7 +92,7 @@ export default function InvoiceFormScreen() {
         dueDate,
         vatRate,
         notes,
-        lines: JSON.stringify(lines),
+        lines,
         amount: subtotal,
         status: existing?.status || 'unpaid',
       };

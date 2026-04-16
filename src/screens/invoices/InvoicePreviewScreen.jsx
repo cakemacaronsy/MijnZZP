@@ -138,20 +138,20 @@ export default function InvoicePreviewScreen() {
             <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>
               {profile.companyName || 'Your Company'}
             </div>
-            {profile.companyAddress && (
-              <div style={{ fontSize: 13, color: '#666' }}>{profile.companyAddress}</div>
+            {profile.address && (
+              <div style={{ fontSize: 13, color: '#666' }}>{profile.address}</div>
             )}
-            {profile.companyPostal && (
-              <div style={{ fontSize: 13, color: '#666' }}>{profile.companyPostal}</div>
+            {profile.postal && (
+              <div style={{ fontSize: 13, color: '#666' }}>{profile.postal}</div>
             )}
-            {profile.companyEmail && (
-              <div style={{ fontSize: 13, color: '#666' }}>{profile.companyEmail}</div>
+            {profile.email && (
+              <div style={{ fontSize: 13, color: '#666' }}>{profile.email}</div>
             )}
-            {profile.companyPhone && (
-              <div style={{ fontSize: 13, color: '#666' }}>{profile.companyPhone}</div>
+            {profile.phone && (
+              <div style={{ fontSize: 13, color: '#666' }}>{profile.phone}</div>
             )}
-            {profile.companyWeb && (
-              <div style={{ fontSize: 13, color: '#666' }}>{profile.companyWeb}</div>
+            {profile.web && (
+              <div style={{ fontSize: 13, color: '#666' }}>{profile.web}</div>
             )}
           </div>
 
@@ -296,9 +296,9 @@ export default function InvoicePreviewScreen() {
             color: '#666',
           }}
         >
-          {profile.companyKvk && <div>KVK: {profile.companyKvk}</div>}
-          {profile.companyBtw && <div>BTW: {profile.companyBtw}</div>}
-          {profile.companyIban && <div>IBAN: {profile.companyIban}</div>}
+          {profile.kvk && <div>KVK: {profile.kvk}</div>}
+          {profile.btw && <div>BTW: {profile.btw}</div>}
+          {profile.iban && <div>IBAN: {profile.iban}</div>}
           {invoice.notes && (
             <div style={{ marginTop: 8, whiteSpace: 'pre-line', color: '#444' }}>
               {invoice.notes}

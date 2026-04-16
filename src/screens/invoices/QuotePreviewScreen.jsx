@@ -153,7 +153,7 @@ export default function QuotePreviewScreen() {
                 {profile?.address || ''}
               </p>
               <p style={{ margin: '4px 0', fontSize: 13, color: '#666' }}>
-                {profile?.postalCity || ''}
+                {profile?.postal || ''}
               </p>
               {profile?.kvk && (
                 <p style={{ margin: '4px 0', fontSize: 13, color: '#666' }}>KVK: {profile.kvk}</p>
