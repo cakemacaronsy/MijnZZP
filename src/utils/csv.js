@@ -22,14 +22,20 @@ export function parseCSV(text) {
   const mapping = detectColumns(header);
 
   if (!mapping) {
-    console.warn('[csv] Could not detect column mapping for headers:', header);
-    return [];
+    const err = new Error(
+      `Could not detect required columns. Headers found: [${header.join(', ')}]. ` +
+      `Need at least: date, amount, description.`
+    );
+    err.headers = header;
+    throw err;
   }
 
   const transactions = [];
 
   for (const row of rows) {
-    if (row.length < header.length) continue;
+    // Accept rows with fewer cells than header — pad with empty strings
+    // (common in real-world CSVs where trailing empty fields are truncated)
+    if (row.length < 2) continue;
 
     const rawDate = row[mapping.date] || '';
     const rawAmount = row[mapping.amount] || '';
