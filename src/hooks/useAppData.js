@@ -6,9 +6,30 @@ import { genId } from '../utils/id';
 
 export const AppContext = createContext(null);
 
+// localStorage key for caching settings (so refresh doesn't lose year etc.)
+const SETTINGS_CACHE_KEY = 'mijnzzp_settings_cache';
+
+function loadCachedSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_CACHE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveCachedSettings(settings) {
+  try {
+    localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(settings));
+  } catch (_) {}
+}
+
 export function useAppData() {
   const [user, setUser] = useState(null);
-  const [settings, setSettings] = useState(defaultSettings);
+  // Initialize with localStorage cache merged over defaults —
+  // so refreshing the page doesn't briefly flash the wrong year.
+  const [settings, setSettings] = useState(() => ({ ...defaultSettings, ...loadCachedSettings() }));
   const [profile, setProfile] = useState(defaultProfile);
   const [invoices, setInvoices] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -40,14 +61,28 @@ export function useAppData() {
     (async () => {
       try {
         const data = await db.getUserSettings();
-        if (data.settings) setSettings(s => ({ ...s, ...data.settings }));
-        if (data.profile) setProfile(p => ({ ...p, ...data.profile }));
+        // Merge order: defaults → localStorage cache → Supabase (Supabase wins when present)
+        const cached = loadCachedSettings();
+        if (data.settings && Object.keys(data.settings).length > 0) {
+          setSettings(s => ({ ...s, ...cached, ...data.settings }));
+          saveCachedSettings({ ...cached, ...data.settings });
+        } else {
+          // Supabase has no settings row yet — keep cache
+          setSettings(s => ({ ...s, ...cached }));
+        }
+        if (data.profile && Object.keys(data.profile).length > 0) {
+          setProfile(p => ({ ...p, ...data.profile }));
+        }
       } catch (e) {
-        console.warn('Failed to load settings:', e);
-        // Fall back to localStorage for onboarded flag so user isn't stuck in onboarding loop
+        console.error('Failed to load settings from Supabase, using localStorage cache:', e);
+        // Use localStorage cache as full fallback
+        const cached = loadCachedSettings();
+        if (Object.keys(cached).length > 0) {
+          setSettings(s => ({ ...s, ...cached }));
+        }
         try {
-          const cached = localStorage.getItem('mijnzzp_onboarded');
-          if (cached === 'true') setSettings(s => ({ ...s, onboarded: true }));
+          const onb = localStorage.getItem('mijnzzp_onboarded');
+          if (onb === 'true') setSettings(s => ({ ...s, onboarded: true }));
         } catch (_) {}
       }
       setLoading(false);
@@ -95,11 +130,19 @@ export function useAppData() {
       next = { ...prev, ...patch };
       return next;
     });
-    // Persist onboarded flag in localStorage as fast fallback
+    // Always cache to localStorage so refresh doesn't lose state (year, lang, etc.)
+    saveCachedSettings(next);
+    // Persist onboarded flag separately for backwards-compat
     if (patch.onboarded !== undefined) {
       try { localStorage.setItem('mijnzzp_onboarded', String(patch.onboarded)); } catch (_) {}
     }
-    try { await db.saveUserSettings(next); } catch (e) { console.warn('Failed to save settings:', e); }
+    try {
+      await db.saveUserSettings(next);
+    } catch (e) {
+      console.error('Failed to save settings to Supabase:', e);
+      // Re-throw so callers can surface errors via toast
+      throw e;
+    }
   }, []);
 
   const updateProfile = useCallback(async (p) => {

@@ -197,7 +197,11 @@ export default function BankImportScreen() {
       let targetYear = settings.year;
       if (analysis?.dominantYear && analysis.dominantYear !== settings.year) {
         targetYear = analysis.dominantYear;
-        await updateSettings({ year: targetYear });
+        try {
+          await updateSettings({ year: targetYear });
+        } catch (e) {
+          toast.error(`Year saved locally but failed to sync to cloud: ${e.message}. Your imports are still saved but year may reset on refresh unless cloud sync works.`);
+        }
       }
       setImportedYear(targetYear);
 

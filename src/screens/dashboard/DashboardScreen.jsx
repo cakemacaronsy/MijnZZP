@@ -7,11 +7,13 @@ import Card from '../../components/shared/Card';
 import Badge from '../../components/shared/Badge';
 import { useToast } from '../../components/shared/Toast';
 import { seedDemoData } from '../../services/demo-seed';
-import { AlertTriangle, Clock, Sparkles, Users, Receipt, Calendar } from 'lucide-react';
+import { getImportHistory } from '../../services/import-history';
+import { AlertTriangle, Clock, Sparkles, Users, Receipt, Calendar, Upload } from 'lucide-react';
 import '../../components/shared/shared.css';
 
 export default function DashboardScreen() {
-  const { invoices, expenses, clients, settings, year, refresh } = useContext(AppContext);
+  const { invoices, expenses, clients, settings, year, refresh, user } = useContext(AppContext);
+  const recentImports = useMemo(() => getImportHistory(user?.id).slice(0, 3), [user?.id, expenses.length]);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
@@ -214,6 +216,40 @@ export default function DashboardScreen() {
           )}
         </Card>
       </div>
+
+      {/* Recent Imports */}
+      {recentImports.length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Upload size={14} /> Recent CSV Imports
+            </h3>
+            <a onClick={() => navigate('/import')} style={{ fontSize: 12, color: 'var(--color-primary)', cursor: 'pointer' }}>
+              View all →
+            </a>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {recentImports.map(rec => (
+              <div key={rec.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                    {new Date(rec.importedAt).toLocaleDateString()}
+                  </span>
+                  <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {rec.filename}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', whiteSpace: 'nowrap' }}>
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: 12 }}>
+                    {rec.count} items · {rec.dominantYear || '—'}
+                  </span>
+                  <span className="mono" style={{ fontSize: 13 }}>{fmt(rec.totalAmount || 0)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Recent Activity */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
