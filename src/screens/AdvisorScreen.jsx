@@ -4,6 +4,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { callClaude, hasApiKey } from '../services/claude';
 import { buildAdvisorContext } from '../services/advisor-context';
 import Card from '../components/shared/Card';
+import Markdown from '../components/shared/Markdown';
 import { Send, AlertTriangle, Bot, User, Key, Database } from 'lucide-react';
 import '../components/shared/shared.css';
 
@@ -180,18 +181,21 @@ export default function AdvisorScreen() {
               </div>
             )}
             <div
+              className={msg.role === 'user' ? 'chat-user-msg' : ''}
               style={{
                 maxWidth: '70%',
                 padding: '10px 14px',
                 borderRadius: 12,
                 fontSize: 14,
                 lineHeight: 1.5,
-                whiteSpace: 'pre-wrap',
                 background: msg.role === 'user' ? 'var(--color-primary)' : 'var(--color-bg-secondary, #f3f4f6)',
                 color: msg.role === 'user' ? 'white' : 'inherit',
+                wordBreak: 'break-word',
               }}
             >
-              {msg.content}
+              {msg.role === 'assistant'
+                ? <Markdown text={msg.content} />
+                : <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>}
             </div>
             {msg.role === 'user' && (
               <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--color-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
