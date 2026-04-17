@@ -1,4 +1,5 @@
 import { useContext, useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../hooks/useAppData';
 import { useTranslation } from '../hooks/useTranslation';
 import { fmt } from '../utils/format';
@@ -11,13 +12,14 @@ import {
   removeImportRecord,
   analyzeTransactions,
 } from '../services/import-history';
-import { Upload, Check, X, FileSpreadsheet, ArrowDownCircle, ArrowUpCircle, AlertCircle, History, Trash2, Calendar } from 'lucide-react';
+import { Upload, Check, X, FileSpreadsheet, ArrowDownCircle, ArrowUpCircle, AlertCircle, History, Trash2, Calendar, Eye, LayoutDashboard } from 'lucide-react';
 import '../components/shared/shared.css';
 
 export default function BankImportScreen() {
   const { saveExpense, refresh, user, settings, updateSettings } = useContext(AppContext);
   const { t } = useTranslation();
   const toast = useToast();
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
   const [transactions, setTransactions] = useState([]);
@@ -29,6 +31,7 @@ export default function BankImportScreen() {
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState('');
   const [importedCount, setImportedCount] = useState(0);
+  const [importedYear, setImportedYear] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [history, setHistory] = useState([]);
   const [dragOver, setDragOver] = useState(false);
@@ -188,20 +191,25 @@ export default function BankImportScreen() {
       setHistory(getImportHistory(user?.id));
 
       setImportedCount(ok);
+
+      // AUTO-SWITCH year if imported data is in a different year.
+      // This ensures the dashboard/overview immediately reflects the new data.
+      let targetYear = settings.year;
+      if (analysis?.dominantYear && analysis.dominantYear !== settings.year) {
+        targetYear = analysis.dominantYear;
+        await updateSettings({ year: targetYear });
+      }
+      setImportedYear(targetYear);
+
       setDone(true);
       await refresh();
 
       if (failed > 0) {
         toast.error(`Imported ${ok}/${total} — ${failed} failed. Check console.`);
+      } else if (targetYear !== settings.year) {
+        toast.success(`Imported ${ok} expenses — switched to ${targetYear} to show them`);
       } else {
         toast.success(`Imported ${ok} transactions as expenses`);
-      }
-
-      // Prompt to switch year if imported data is in a different year
-      if (analysis?.dominantYear && analysis.dominantYear !== settings.year) {
-        toast.info(
-          `Most transactions are from ${analysis.dominantYear}. Switch year in the sidebar to view them.`
-        );
       }
     } catch (err) {
       console.error('Import failed:', err);
@@ -297,27 +305,18 @@ export default function BankImportScreen() {
         </Card>
       )}
 
-      {/* Year mismatch warning */}
+      {/* Year info (auto-switch on import) */}
       {analysis?.dominantYear && analysis.dominantYear !== settings.year && transactions.length > 0 && !done && (
-        <Card style={{ marginBottom: 20, borderLeft: '3px solid var(--color-warning)' }}>
+        <Card style={{ marginBottom: 20, borderLeft: '3px solid var(--color-secondary)' }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <Calendar size={20} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: 2 }} />
+            <Calendar size={20} color="var(--color-secondary)" style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1 }}>
               <p style={{ fontWeight: 600, marginBottom: 4 }}>
-                Year mismatch
+                Data is from {analysis.dominantYear}
               </p>
-              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>
-                Most transactions are from <strong>{analysis.dominantYear}</strong> but you're currently viewing <strong>{settings.year}</strong> on the dashboard. Imported expenses won't appear until you switch year.
+              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
+                You're currently viewing <strong>{settings.year}</strong>. After import, the dashboard will automatically switch to <strong>{analysis.dominantYear}</strong> so you see the new data.
               </p>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={async () => {
-                  await updateSettings({ year: analysis.dominantYear });
-                  toast.success(`Switched to ${analysis.dominantYear}`);
-                }}
-              >
-                Switch to {analysis.dominantYear}
-              </button>
             </div>
           </div>
         </Card>
@@ -416,16 +415,34 @@ export default function BankImportScreen() {
       {done && (
         <Card style={{ textAlign: 'center', padding: 40, marginBottom: 20 }}>
           <Check size={48} color="var(--color-success)" style={{ marginBottom: 12 }} />
-          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-            {importedCount} transactions imported as expenses
+          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+            {importedCount} expenses imported
           </p>
-          <button
-            className="btn btn-secondary"
-            onClick={() => { setTransactions([]); setSelected(new Set()); setFileName(''); setDone(false); setImportedCount(0); setImportProgress(0); setAnalysis(null); }}
-            style={{ marginTop: 12 }}
-          >
-            Import More
-          </button>
+          {importedYear && (
+            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 16 }}>
+              Now viewing year <strong>{importedYear}</strong>. Edit individual rows in the Expenses tab.
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate('/expenses')}
+            >
+              <Eye size={16} /> View &amp; Edit Expenses
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => navigate('/')}
+            >
+              <LayoutDashboard size={16} /> Dashboard
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => { setTransactions([]); setSelected(new Set()); setFileName(''); setDone(false); setImportedCount(0); setImportProgress(0); setAnalysis(null); setImportedYear(null); }}
+            >
+              Import More
+            </button>
+          </div>
         </Card>
       )}
 
@@ -473,17 +490,33 @@ export default function BankImportScreen() {
                         : rec.dominantYear || '-'}
                     </td>
                     <td className="mono" style={{ textAlign: 'right' }}>{fmt(rec.totalAmount || 0)}</td>
-                    <td>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        title="Remove from history"
-                        onClick={() => {
-                          removeImportRecord(rec.id);
-                          setHistory(getImportHistory(user?.id));
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                        {rec.dominantYear && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            title={`View expenses from ${rec.dominantYear}`}
+                            onClick={async () => {
+                              if (rec.dominantYear !== settings.year) {
+                                await updateSettings({ year: rec.dominantYear });
+                              }
+                              navigate('/expenses');
+                            }}
+                          >
+                            <Eye size={14} />
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          title="Remove from history"
+                          onClick={() => {
+                            removeImportRecord(rec.id);
+                            setHistory(getImportHistory(user?.id));
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
