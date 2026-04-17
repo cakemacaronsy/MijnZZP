@@ -313,8 +313,8 @@ export default {
   },
 
   bank: {
-    title: 'Import Bank Statement',
-    sub: 'Upload a CSV file from your bank (ING, ABN AMRO, Rabobank)',
+    title: 'Import Expenses',
+    sub: 'Upload a CSV file — bank statement, corporate expense log, or any other expense list',
     upload: 'Upload CSV',
     analyzing: 'Analyzing transactions...',
     found: 'transactions found',
@@ -486,6 +486,6 @@ export default {
     saveFailed: 'Failed to save',
     deleted: 'Deleted',
     deleteFailed: 'Failed to delete',
-    bankFormats: 'ING, ABN AMRO, Rabobank CSV',
+    bankFormats: 'Any CSV — bank, expense log, corporate report',
   },
 };

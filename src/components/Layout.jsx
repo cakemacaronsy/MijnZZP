@@ -20,7 +20,7 @@ const navItems = [
 
 const bottomItems = [
   { to: '/advisor', icon: Bot, label: 'AI Advisor' },
-  { to: '/import', icon: Upload, label: 'Bank Import' },
+  { to: '/import', icon: Upload, label: 'Import CSV' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

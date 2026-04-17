@@ -271,7 +271,7 @@ export default function BankImportScreen() {
               <p style={{ fontWeight: 600, marginBottom: 4 }}>Could not parse CSV</p>
               <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{parseError}</p>
               <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 8 }}>
-                Try downloading a fresh CSV export from your bank. Supported: ING, ABN AMRO, Rabobank.
+                Needs columns for date, amount, and ideally a description. Supports bank exports (ING, ABN AMRO, Rabobank) and generic expense logs.
               </p>
             </div>
           </div>

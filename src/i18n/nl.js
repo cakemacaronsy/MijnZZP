@@ -313,8 +313,8 @@ export default {
   },
 
   bank: {
-    title: 'Bankafschrift importeren',
-    sub: 'Upload een CSV-bestand van je bank (ING, ABN AMRO, Rabobank)',
+    title: 'Uitgaven importeren',
+    sub: 'Upload een CSV-bestand — bankafschrift, zakelijke uitgavenlijst of andere uitgavenbron',
     upload: 'CSV uploaden',
     analyzing: 'Transacties worden geanalyseerd...',
     found: 'transacties gevonden',
@@ -486,6 +486,6 @@ export default {
     saveFailed: 'Opslaan mislukt',
     deleted: 'Verwijderd',
     deleteFailed: 'Verwijderen mislukt',
-    bankFormats: 'ING, ABN AMRO, Rabobank CSV',
+    bankFormats: 'Elk CSV — bank, uitgavenlijst, rapport',
   },
 };
