@@ -1,8 +1,12 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppData, AppContext } from './hooks/useAppData';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/shared/ErrorBoundary';
+import { ToastProvider } from './components/shared/Toast';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import DashboardScreen from './screens/dashboard/DashboardScreen';
 import InvoiceListScreen from './screens/invoices/InvoiceListScreen';
@@ -51,12 +55,16 @@ export default function App() {
   const { user, loading, settings } = appData;
 
   return (
-    <AppContext.Provider value={appData}>
-      <HashRouter>
-        <Routes>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AppContext.Provider value={appData}>
+          <HashRouter>
+            <Routes>
           {/* Public routes */}
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginScreen />} />
           <Route path="/signup" element={user ? <Navigate to="/" replace /> : <SignupScreen />} />
+          <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+          <Route path="/reset-password" element={<ResetPasswordScreen />} />
 
           {/* Onboarding */}
           <Route path="/onboarding" element={
@@ -102,8 +110,10 @@ export default function App() {
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </HashRouter>
-    </AppContext.Provider>
+            </Routes>
+          </HashRouter>
+        </AppContext.Provider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }

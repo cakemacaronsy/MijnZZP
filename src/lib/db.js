@@ -151,8 +151,12 @@ export const getReceiptPhotoUrl = async (expenseId) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const path = `${user.id}/${expenseId}.jpg`;
-  const { data } = supabase.storage.from('receipts').getPublicUrl(path);
-  return data?.publicUrl || null;
+  // Use signed URL for private buckets (works with RLS)
+  const { data, error } = await supabase.storage
+    .from('receipts')
+    .createSignedUrl(path, 3600); // 1 hour
+  if (error) return null;
+  return data?.signedUrl || null;
 };
 
 export const deleteReceiptPhoto = async (expenseId) => {

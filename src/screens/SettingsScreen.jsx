@@ -3,6 +3,7 @@ import { AppContext } from '../hooks/useAppData';
 import { useTranslation } from '../hooks/useTranslation';
 import { getApiKey, setApiKey } from '../services/claude';
 import Card from '../components/shared/Card';
+import { useToast } from '../components/shared/Toast';
 import { Save, Download, Upload, Eye, EyeOff, Globe, Clock, Key } from 'lucide-react';
 import '../components/shared/shared.css';
 
@@ -12,6 +13,7 @@ export default function SettingsScreen() {
     invoices, expenses, quotes, personalItems, clients,
   } = useContext(AppContext);
   const { t } = useTranslation();
+  const toast = useToast();
 
   // Profile form
   const [prof, setProf] = useState({
@@ -50,22 +52,33 @@ export default function SettingsScreen() {
   }, []);
 
   const saveProfile = async () => {
-    await updateProfile({
-      ...prof,
-      paymentDays: parseInt(prof.paymentDays, 10) || 30,
-    });
+    try {
+      await updateProfile({
+        ...prof,
+        paymentDays: parseInt(prof.paymentDays, 10) || 30,
+      });
+      toast.success(t.common.saved);
+    } catch (e) {
+      toast.error(`${t.common.saveFailed}: ${e.message}`);
+    }
   };
 
   const saveAppSettings = async () => {
-    await updateSettings({
-      lang,
-      isStarter,
-      workedHours: parseInt(workedHours, 10) || 0,
-    });
+    try {
+      await updateSettings({
+        lang,
+        isStarter,
+        workedHours: parseInt(workedHours, 10) || 0,
+      });
+      toast.success(t.common.saved);
+    } catch (e) {
+      toast.error(`${t.common.saveFailed}: ${e.message}`);
+    }
   };
 
   const saveApiKeyHandler = () => {
     setApiKey(apiKey.trim() || null);
+    toast.success(t.common.saved);
   };
 
   const handleExport = () => {
@@ -96,10 +109,10 @@ export default function SettingsScreen() {
       const data = JSON.parse(text);
       if (data.settings) await updateSettings(data.settings);
       if (data.profile) await updateProfile(data.profile);
-      alert(t.backup.restored);
+      toast.success(t.backup.restored);
     } catch (err) {
       console.error('Import failed:', err);
-      alert('Import failed. Invalid file format.');
+      toast.error('Import failed. Invalid file format.');
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -109,7 +122,7 @@ export default function SettingsScreen() {
   return (
     <div>
       <div className="page-header">
-        <h1>Settings</h1>
+        <h1>{t.common.settings}</h1>
       </div>
 
       {/* Company Profile */}
@@ -181,12 +194,12 @@ export default function SettingsScreen() {
       <Card style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
           <Globe size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />
-          App Settings
+          {t.common.appSettings}
         </h3>
 
         <div className="form-row">
           <div className="form-group">
-            <label>Language</label>
+            <label>{t.common.language}</label>
             <select className="input" value={lang} onChange={e => setLang(e.target.value)}>
               <option value="en">English</option>
               <option value="nl">Nederlands</option>
@@ -217,7 +230,7 @@ export default function SettingsScreen() {
         </div>
 
         <button className="btn btn-primary" onClick={saveAppSettings} style={{ marginTop: 12 }}>
-          <Save size={16} /> Save Settings
+          <Save size={16} /> {t.common.saveSettings}
         </button>
       </Card>
 

@@ -53,6 +53,9 @@ export default function LoginScreen() {
             <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', justifyContent: 'center' }}>
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
+            <div style={{ textAlign: 'center', fontSize: 13 }}>
+              <Link to="/forgot-password" style={{ color: 'var(--color-text-secondary)' }}>Forgot password?</Link>
+            </div>
           </form>
         </div>
         <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13 }} className="text-secondary">

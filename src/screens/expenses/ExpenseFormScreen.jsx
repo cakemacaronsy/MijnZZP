@@ -5,6 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { fmt } from '../../utils/format';
 import { CATS, VAT_RATES } from '../../constants/categories';
 import { ArrowLeft, Upload } from 'lucide-react';
+import ReceiptThumbnail from '../../components/shared/ReceiptViewer';
 import '../../components/shared/shared.css';
 
 const emptyExpense = {
@@ -242,27 +243,30 @@ export default function ExpenseFormScreen() {
           </div>
         )}
 
-        {/* Receipt upload */}
+        {/* Receipt upload + preview */}
         <div className="form-group" style={{ marginTop: 16 }}>
           <label>{t.scan.title}</label>
-          <label
-            className="btn btn-secondary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-          >
-            <Upload size={16} />
-            {t.scan.upload}
-            <input
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
-          </label>
-          {(receiptName || form.receiptFile) && (
-            <span style={{ marginLeft: 12, color: 'var(--color-text-secondary)' }}>
-              {receiptName || form.receiptFile}
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {isEdit && <ReceiptThumbnail expenseId={id} size={60} />}
+            <label
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+            >
+              <Upload size={16} />
+              {t.scan.upload}
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+            </label>
+            {(receiptName || form.receiptFile) && (
+              <span style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>
+                {receiptName || form.receiptFile}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Actions */}

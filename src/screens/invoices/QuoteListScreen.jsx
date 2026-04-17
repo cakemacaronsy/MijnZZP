@@ -154,7 +154,7 @@ export default function QuoteListScreen() {
 
       {/* Delete confirmation modal */}
       <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title={t.inv.del}>
-        <p style={{ marginBottom: 16 }}>Are you sure you want to delete this quotation?</p>
+        <p style={{ marginBottom: 16 }}>{t.common.confirmDeleteQuote}</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>
             {t.inv.cancel}

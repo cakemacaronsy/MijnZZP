@@ -131,7 +131,7 @@ export default function PersonalListScreen() {
       )}
 
       <Modal open={!!deleteId} onClose={() => setDeleteId(null)} title={t.priv.del}>
-        <p style={{ marginBottom: 16 }}>Are you sure you want to delete this item?</p>
+        <p style={{ marginBottom: 16 }}>{t.common.confirmDeleteItem}</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button className="btn btn-secondary" onClick={() => setDeleteId(null)}>{t.priv.cancel}</button>
           <button className="btn btn-danger" onClick={handleDelete}>{t.priv.del}</button>

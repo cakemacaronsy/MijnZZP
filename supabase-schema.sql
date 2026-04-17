@@ -159,3 +159,45 @@ CREATE POLICY "Users manage own data" ON user_settings FOR ALL USING (auth.uid()
 -- Storage bucket for receipt photos
 -- Run this separately in Storage settings or via:
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('receipts', 'receipts', true);
+
+-- ============================================================
+-- Storage RLS policies for receipts bucket
+-- Each user can only access files under their own user_id folder.
+-- Run this after creating the 'receipts' bucket in Supabase Storage.
+-- ============================================================
+
+-- Allow users to upload to their own folder
+CREATE POLICY "users_upload_own_receipts"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'receipts'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Allow users to read their own receipts
+CREATE POLICY "users_read_own_receipts"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'receipts'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Allow users to update their own receipts
+CREATE POLICY "users_update_own_receipts"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'receipts'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Allow users to delete their own receipts
+CREATE POLICY "users_delete_own_receipts"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'receipts'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);

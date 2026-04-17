@@ -110,7 +110,7 @@ export default function BankImportScreen() {
         >
           <FileSpreadsheet size={40} color="var(--color-text-secondary)" style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>{t.bank.upload}</p>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>ING, ABN AMRO, Rabobank CSV</p>
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{t.common.bankFormats}</p>
           {fileName && (
             <p style={{ fontSize: 13, color: 'var(--color-primary)', marginTop: 8 }}>{fileName}</p>
           )}
@@ -137,8 +137,8 @@ export default function BankImportScreen() {
               )}
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost btn-sm" onClick={selectAll}>Select All</button>
-              <button className="btn btn-ghost btn-sm" onClick={selectNone}>Select None</button>
+              <button className="btn btn-ghost btn-sm" onClick={selectAll}>{t.common.selectAll}</button>
+              <button className="btn btn-ghost btn-sm" onClick={selectNone}>{t.common.selectNone}</button>
             </div>
           </div>
 

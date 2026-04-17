@@ -1,17 +1,38 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../../hooks/useAppData';
 import { useTranslation } from '../../hooks/useTranslation';
 import { fmt } from '../../utils/format';
 import Card from '../../components/shared/Card';
 import Badge from '../../components/shared/Badge';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { useToast } from '../../components/shared/Toast';
+import { seedDemoData } from '../../services/demo-seed';
+import { AlertTriangle, Clock, Sparkles } from 'lucide-react';
 import '../../components/shared/shared.css';
 
 export default function DashboardScreen() {
-  const { invoices, expenses, clients, settings } = useContext(AppContext);
+  const { invoices, expenses, clients, settings, refresh } = useContext(AppContext);
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const toast = useToast();
+  const [seeding, setSeeding] = useState(false);
+
+  const isEmpty = invoices.length === 0 && expenses.length === 0 && clients.length === 0;
+
+  const handleSeedDemo = async () => {
+    if (seeding) return;
+    setSeeding(true);
+    try {
+      const result = await seedDemoData();
+      await refresh();
+      toast.success(`${t.common.demoLoaded}: ${result.invoices + result.expenses + result.clients + result.personalItems} items`);
+    } catch (e) {
+      console.error('Seed failed:', e);
+      toast.error(`${t.common.saveFailed}: ${e.message || 'Unknown error'}`);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const totalHours = (settings.workedHours || 0) + (settings.calendarHours || 0);
 
@@ -54,7 +75,30 @@ export default function DashboardScreen() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>{t.tabs[0]}</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700 }}>{t.tabs[0]}</h1>
+        {isEmpty && (
+          <button
+            className="btn btn-secondary"
+            onClick={handleSeedDemo}
+            disabled={seeding}
+          >
+            <Sparkles size={16} />
+            {seeding ? '...' : t.common.loadDemoData}
+          </button>
+        )}
+      </div>
+
+      {/* Empty state */}
+      {isEmpty && !seeding && (
+        <Card style={{ marginBottom: 20, textAlign: 'center', padding: 32 }}>
+          <Sparkles size={40} style={{ color: 'var(--color-primary)', marginBottom: 12 }} />
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Welcome to MijnZZP</h3>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: 14, marginBottom: 16, maxWidth: 420, margin: '0 auto 16px' }}>
+            No data yet. Click "Load Demo Data" above to populate sample invoices, expenses, and a client so you can explore the app.
+          </p>
+        </Card>
+      )}
 
       {/* Alerts */}
       {(overdueInvoices.length > 0 || pendingFollowups.length > 0) && (

@@ -46,7 +46,7 @@ export default function ClientDetailScreen() {
     return (
       <div>
         <button className="btn btn-ghost" onClick={() => navigate('/clients')}>
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={16} /> {t.common.back}
         </button>
         <div className="empty-state">Client not found</div>
       </div>
@@ -78,7 +78,7 @@ export default function ClientDetailScreen() {
     <div>
       <div className="page-header">
         <button className="btn btn-ghost" onClick={() => navigate('/clients')}>
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={16} /> {t.common.back}
         </button>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-secondary" onClick={() => navigate(`/clients/${id}/edit`)}>
@@ -234,7 +234,7 @@ export default function ClientDetailScreen() {
 
       {/* Delete Client Modal */}
       <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} title={t.clients.del}>
-        <p style={{ marginBottom: 16 }}>Are you sure you want to delete {client.name}?</p>
+        <p style={{ marginBottom: 16 }}>{t.common.confirmDeleteClient}</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>{t.clients.cancel}</button>
           <button className="btn btn-danger" onClick={handleDeleteClient}>{t.clients.del}</button>
@@ -242,20 +242,20 @@ export default function ClientDetailScreen() {
       </Modal>
 
       {/* Delete Session Modal */}
-      <Modal open={!!deleteSessionId} onClose={() => setDeleteSessionId(null)} title="Delete Session">
-        <p style={{ marginBottom: 16 }}>Are you sure you want to delete this session?</p>
+      <Modal open={!!deleteSessionId} onClose={() => setDeleteSessionId(null)} title={t.common.deleteSession}>
+        <p style={{ marginBottom: 16 }}>{t.common.confirmDeleteSession}</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={() => setDeleteSessionId(null)}>{t.clients.cancel}</button>
-          <button className="btn btn-danger" onClick={handleDeleteSession}>{t.clients.del}</button>
+          <button className="btn btn-secondary" onClick={() => setDeleteSessionId(null)}>{t.common.cancel}</button>
+          <button className="btn btn-danger" onClick={handleDeleteSession}>{t.common.delete}</button>
         </div>
       </Modal>
 
       {/* Delete Package Modal */}
-      <Modal open={!!deletePackageId} onClose={() => setDeletePackageId(null)} title="Delete Package">
-        <p style={{ marginBottom: 16 }}>Are you sure you want to delete this package?</p>
+      <Modal open={!!deletePackageId} onClose={() => setDeletePackageId(null)} title={t.common.deletePackage}>
+        <p style={{ marginBottom: 16 }}>{t.common.confirmDeletePackage}</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={() => setDeletePackageId(null)}>{t.clients.cancel}</button>
-          <button className="btn btn-danger" onClick={handleDeletePackage}>{t.clients.del}</button>
+          <button className="btn btn-secondary" onClick={() => setDeletePackageId(null)}>{t.common.cancel}</button>
+          <button className="btn btn-danger" onClick={handleDeletePackage}>{t.common.delete}</button>
         </div>
       </Modal>
     </div>

@@ -5,6 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { fmt } from '../../utils/format';
 import { CATS } from '../../constants/categories';
 import Modal from '../../components/shared/Modal';
+import ReceiptThumbnail from '../../components/shared/ReceiptViewer';
 import { Plus, Search, Pencil, Trash2, Receipt, Camera } from 'lucide-react';
 import '../../components/shared/shared.css';
 
@@ -102,6 +103,7 @@ export default function ExpenseListScreen() {
           <table>
             <thead>
               <tr>
+                <th style={{ width: 52 }}></th>
                 <th>{t.exp.date}</th>
                 <th>{t.exp.desc}</th>
                 <th>{t.exp.cat}</th>
@@ -118,6 +120,9 @@ export default function ExpenseListScreen() {
                   style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/expenses/${exp.id}/edit`)}
                 >
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <ReceiptThumbnail expenseId={exp.id} size={36} />
+                  </td>
                   <td>{exp.date || '-'}</td>
                   <td style={{ fontWeight: 500 }}>{exp.description || '-'}</td>
                   <td>{t.exp.cats[exp.category] || exp.category || '-'}</td>
@@ -156,7 +161,7 @@ export default function ExpenseListScreen() {
 
       {/* Delete confirmation modal */}
       <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title={t.exp.del}>
-        <p style={{ marginBottom: 16 }}>Are you sure you want to delete this expense?</p>
+        <p style={{ marginBottom: 16 }}>{t.common.confirmDeleteExpense}</p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>
             {t.exp.cancel}
