@@ -31,15 +31,22 @@ export default function BankImportScreen() {
   const [importedCount, setImportedCount] = useState(0);
   const [analysis, setAnalysis] = useState(null);
   const [history, setHistory] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
 
   // Load import history on mount and whenever user changes
   useEffect(() => {
     setHistory(getImportHistory(user?.id));
   }, [user?.id]);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
+  const processFile = async (file) => {
     if (!file) return;
+
+    // Validate file looks like CSV
+    const name = (file.name || '').toLowerCase();
+    if (!name.endsWith('.csv') && !name.endsWith('.txt') && file.type && !file.type.includes('csv') && !file.type.includes('text')) {
+      toast.error(`Unsupported file: ${file.name}. Please drop a .csv file.`);
+      return;
+    }
 
     setFileName(file.name);
     setDone(false);
@@ -60,10 +67,12 @@ export default function BankImportScreen() {
       }
 
       setTransactions(parsed);
-      // Select all expense (negative) transactions by default
+      // Auto-select: if any negatives exist, select those (typical bank CSV).
+      // Otherwise select all (generic expense log where every row is already an expense).
+      const hasNegatives = parsed.some(tx => tx.amount < 0);
       const defaultSelected = new Set();
       parsed.forEach((tx, i) => {
-        if (tx.amount < 0) defaultSelected.add(i);
+        if (hasNegatives ? tx.amount < 0 : tx.amount !== 0) defaultSelected.add(i);
       });
       setSelected(defaultSelected);
 
@@ -79,6 +88,31 @@ export default function BankImportScreen() {
       setParsing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    processFile(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dragOver) setDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) processFile(file);
   };
 
   const toggleSelect = (index) => {
@@ -115,13 +149,18 @@ export default function BankImportScreen() {
         const tx = transactions[idx];
         if (!tx) continue;
         try {
+          // Build description: prefer counterparty+description combined, fall back to either alone, then generic
+          const descParts = [tx.counterparty, tx.description].filter(Boolean);
+          const description = descParts.length > 0
+            ? descParts.join(' — ')
+            : `Imported ${tx.date}`;
           await saveExpense({
-            description: [tx.counterparty, tx.description].filter(Boolean).join(' — ') || 'Bank import',
+            description,
             amount: Math.abs(tx.amount),
             date: tx.date,
             category: 'other',
             vatRate: 21,
-            supplier: tx.counterparty || '',
+            supplier: tx.counterparty || tx.description || '',
             isAsset: false,
             depYears: 0,
             residualValue: 0,
@@ -186,18 +225,28 @@ export default function BankImportScreen() {
       <Card style={{ marginBottom: 20 }}>
         <div
           style={{
-            border: '2px dashed var(--color-border, #d1d5db)',
+            border: `2px dashed ${dragOver ? 'var(--color-primary)' : 'var(--color-border, #d1d5db)'}`,
+            background: dragOver ? 'rgba(249, 115, 22, 0.06)' : 'transparent',
             borderRadius: 12,
             padding: 40,
             textAlign: 'center',
             cursor: 'pointer',
+            transition: 'border-color 0.15s, background 0.15s',
           }}
           onClick={() => fileInputRef.current?.click()}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
-          <FileSpreadsheet size={40} color="var(--color-text-secondary)" style={{ marginBottom: 12 }} />
-          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>{t.bank.upload}</p>
-          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{t.common.bankFormats}</p>
-          {fileName && (
+          <FileSpreadsheet size={40} color={dragOver ? 'var(--color-primary)' : 'var(--color-text-secondary)'} style={{ marginBottom: 12 }} />
+          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
+            {dragOver ? 'Drop CSV here' : t.bank.upload}
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
+            {t.common.bankFormats} — or drag &amp; drop a file
+          </p>
+          {fileName && !dragOver && (
             <p style={{ fontSize: 13, color: 'var(--color-primary)', marginTop: 8 }}>{fileName}</p>
           )}
           {parsing && (

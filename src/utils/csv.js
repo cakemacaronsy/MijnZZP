@@ -76,7 +76,7 @@ export function parseCSV(text) {
 
     const rawDate = row[mapping.date] || '';
     const rawAmount = row[mapping.amount] || '';
-    const rawDescription = row[mapping.description] || '';
+    const rawDescription = mapping.description >= 0 ? (row[mapping.description] || '') : '';
     const rawCounterparty = mapping.counterparty !== null ? (row[mapping.counterparty] || '') : '';
 
     // Parse date
@@ -172,18 +172,18 @@ function detectColumns(header) {
       date = i;
     }
 
-    // Amount columns
-    if (amount === null && /^(bedrag|amount|transactiebedrag|bedrag \(eur\)|bedrag eur|bedrag euro|value|mutatie|trn amount|transaction amount|debit\/credit)$/.test(h)) {
+    // Amount columns — also match "amount (usd)", "amount (eur)", etc.
+    if (amount === null && /^(bedrag|amount|amount \(.+\)|transactiebedrag|bedrag \(eur\)|bedrag eur|bedrag euro|value|mutatie|trn amount|transaction amount|debit\/credit|price|cost|total)$/.test(h)) {
       amount = i;
     }
 
-    // Description columns
-    if (description === null && /^(omschrijving|description|mededelingen|naam \/ omschrijving|naam\/omschrijving|omschrijving-1|detail|details|memo|reference|narration)$/.test(h)) {
+    // Description columns — expanded for generic expense logs
+    if (description === null && /^(omschrijving|description|mededelingen|naam \/ omschrijving|naam\/omschrijving|omschrijving-1|detail|details|memo|reference|narration|note|notes|purpose|reason|merchant|vendor|employee name|employee|category|item|subject)$/.test(h)) {
       description = i;
     }
 
     // Counterparty columns
-    if (counterparty === null && /^(tegenrekening|counterparty|tegenpartij|naam tegenpartij|tegenrekening iban|rekening tegenpartij|beneficiary|payee|iban\/bban|name)$/.test(h)) {
+    if (counterparty === null && /^(tegenrekening|counterparty|tegenpartij|naam tegenpartij|tegenrekening iban|rekening tegenpartij|beneficiary|payee|iban\/bban|name|supplier|from|to)$/.test(h)) {
       counterparty = i;
     }
 
@@ -197,7 +197,10 @@ function detectColumns(header) {
   if (description === null) {
     for (let i = 0; i < header.length; i++) {
       const h = header[i];
-      if (h.includes('omschrijving') || h.includes('description') || h.includes('mededeling') || h.includes('detail') || h.includes('memo')) {
+      if (h.includes('omschrijving') || h.includes('description') || h.includes('mededeling') ||
+          h.includes('detail') || h.includes('memo') || h.includes('note') ||
+          h.includes('name') || h.includes('merchant') || h.includes('vendor') ||
+          h.includes('category') || h.includes('item') || h.includes('employee')) {
         description = i;
         break;
       }
@@ -207,7 +210,8 @@ function detectColumns(header) {
   // Fall back: if no amount found, try broader substring matches
   if (amount === null) {
     for (let i = 0; i < header.length; i++) {
-      if (header[i].includes('bedrag') || header[i].includes('amount') || header[i].includes('value')) {
+      if (header[i].includes('bedrag') || header[i].includes('amount') || header[i].includes('value') ||
+          header[i].includes('price') || header[i].includes('cost') || header[i].includes('total')) {
         amount = i;
         break;
       }
@@ -224,12 +228,30 @@ function detectColumns(header) {
     }
   }
 
-  // Must have at least date, amount, and description
-  if (date === null || amount === null || description === null) {
+  // Must have at least date and amount. Description is optional — will synthesize from other columns.
+  if (date === null || amount === null) {
     return null;
   }
 
-  return { date, amount, description, counterparty: counterparty !== null ? counterparty : null, bijAf: bijAf !== null ? bijAf : null };
+  // If no description or counterparty found, use any remaining text column as description
+  if (description === null) {
+    for (let i = 0; i < header.length; i++) {
+      if (i !== date && i !== amount && i !== counterparty && i !== bijAf && header[i].length > 0) {
+        description = i;
+        break;
+      }
+    }
+  }
+
+  return {
+    date,
+    amount,
+    description: description !== null ? description : -1, // -1 = use empty/synthesized
+    counterparty: counterparty !== null ? counterparty : null,
+    bijAf: bijAf !== null ? bijAf : null,
+    // Extra context for synthesizing descriptions
+    allHeaders: header,
+  };
 }
 
 /**
