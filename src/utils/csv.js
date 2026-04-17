@@ -8,15 +8,52 @@
 export function parseCSV(text) {
   if (!text || typeof text !== 'string') return [];
 
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
+  // 1. Strip UTF-8 BOM
+  if (text.charCodeAt(0) === 0xFEFF) {
+    text = text.slice(1);
+  }
 
-  // Detect separator
-  const separator = detectSeparator(lines[0]);
+  // 2. Handle Excel "sep=," directive on first line
+  let lines = text.split(/\r?\n/);
+  if (lines.length > 0 && /^sep=.$/i.test(lines[0].trim())) {
+    lines = lines.slice(1);
+  }
 
-  // Parse header and rows
-  const header = splitRow(lines[0], separator).map((h) => h.trim().toLowerCase().replace(/['"]/g, ''));
-  const rows = lines.slice(1).map((line) => splitRow(line, separator).map((cell) => cell.trim().replace(/^['"]|['"]$/g, '')));
+  // 3. Skip empty/blank lines at the start (empty strings, or only separators)
+  while (lines.length > 0 && /^[\s,;\t]*$/.test(lines[0])) {
+    lines = lines.slice(1);
+  }
+
+  if (lines.length < 2) {
+    throw new Error('File appears empty or has no data rows after the header.');
+  }
+
+  // 4. Try all three separators and pick the one that produces the most non-empty header cells
+  const candidates = ['\t', ';', ','];
+  let best = { separator: ',', header: [], nonEmpty: 0 };
+  for (const sep of candidates) {
+    const hdr = splitRow(lines[0], sep).map((h) => h.trim().toLowerCase().replace(/['"]/g, ''));
+    const nonEmpty = hdr.filter((h) => h.length > 0).length;
+    if (nonEmpty > best.nonEmpty) {
+      best = { separator: sep, header: hdr, nonEmpty };
+    }
+  }
+
+  const separator = best.separator;
+  const header = best.header;
+
+  // 5. If header cells are still all empty, we have a malformed file
+  if (best.nonEmpty === 0) {
+    const preview = lines.slice(0, 3).join(' | ').slice(0, 200);
+    throw new Error(
+      `First row is empty or unreadable. File preview: "${preview}". ` +
+      `Try re-exporting the CSV from your bank.`
+    );
+  }
+
+  const rows = lines.slice(1)
+    .filter((line) => line.trim().length > 0) // skip fully blank data rows
+    .map((line) => splitRow(line, separator).map((cell) => cell.trim().replace(/^['"]|['"]$/g, '')));
 
   // Detect column mapping
   const mapping = detectColumns(header);
@@ -131,36 +168,57 @@ function detectColumns(header) {
     const h = header[i];
 
     // Date columns
-    if (date === null && /^(datum|date|boekingsdatum|transactiedatum|verwerkingsdatum)$/.test(h)) {
+    if (date === null && /^(datum|date|boekingsdatum|transactiedatum|verwerkingsdatum|booking date|transaction date|trn date|trxdate)$/.test(h)) {
       date = i;
     }
 
     // Amount columns
-    if (amount === null && /^(bedrag|amount|transactiebedrag|bedrag \(eur\)|saldo na mutatie)$/.test(h)) {
+    if (amount === null && /^(bedrag|amount|transactiebedrag|bedrag \(eur\)|bedrag eur|bedrag euro|value|mutatie|trn amount|transaction amount|debit\/credit)$/.test(h)) {
       amount = i;
     }
 
     // Description columns
-    if (description === null && /^(omschrijving|description|mededelingen|naam \/ omschrijving|naam\/omschrijving)$/.test(h)) {
+    if (description === null && /^(omschrijving|description|mededelingen|naam \/ omschrijving|naam\/omschrijving|omschrijving-1|detail|details|memo|reference|narration)$/.test(h)) {
       description = i;
     }
 
     // Counterparty columns
-    if (counterparty === null && /^(tegenrekening|counterparty|tegenpartij|naam tegenpartij|tegenrekening iban|rekening tegenpartij)$/.test(h)) {
+    if (counterparty === null && /^(tegenrekening|counterparty|tegenpartij|naam tegenpartij|tegenrekening iban|rekening tegenpartij|beneficiary|payee|iban\/bban|name)$/.test(h)) {
       counterparty = i;
     }
 
     // ING bij/af column
-    if (bijAf === null && /^(af bij|af\/bij)$/.test(h)) {
+    if (bijAf === null && /^(af bij|af\/bij|debet\/credit|debit\/credit ind)$/.test(h)) {
       bijAf = i;
     }
   }
 
-  // Fall back: if no description found, try broader matches
+  // Fall back: if no description found, try broader substring matches
   if (description === null) {
     for (let i = 0; i < header.length; i++) {
-      if (header[i].includes('omschrijving') || header[i].includes('description') || header[i].includes('mededeling')) {
+      const h = header[i];
+      if (h.includes('omschrijving') || h.includes('description') || h.includes('mededeling') || h.includes('detail') || h.includes('memo')) {
         description = i;
+        break;
+      }
+    }
+  }
+
+  // Fall back: if no amount found, try broader substring matches
+  if (amount === null) {
+    for (let i = 0; i < header.length; i++) {
+      if (header[i].includes('bedrag') || header[i].includes('amount') || header[i].includes('value')) {
+        amount = i;
+        break;
+      }
+    }
+  }
+
+  // Fall back: if no date found, try any column containing "datum" or "date"
+  if (date === null) {
+    for (let i = 0; i < header.length; i++) {
+      if (header[i].includes('datum') || header[i].includes('date')) {
+        date = i;
         break;
       }
     }

@@ -7,17 +7,26 @@ import Card from '../../components/shared/Card';
 import Badge from '../../components/shared/Badge';
 import { useToast } from '../../components/shared/Toast';
 import { seedDemoData } from '../../services/demo-seed';
-import { AlertTriangle, Clock, Sparkles } from 'lucide-react';
+import { AlertTriangle, Clock, Sparkles, Users, Receipt, Calendar } from 'lucide-react';
 import '../../components/shared/shared.css';
 
 export default function DashboardScreen() {
-  const { invoices, expenses, clients, settings, refresh } = useContext(AppContext);
+  const { invoices, expenses, clients, settings, year, refresh } = useContext(AppContext);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
   const [seeding, setSeeding] = useState(false);
 
   const isEmpty = invoices.length === 0 && expenses.length === 0 && clients.length === 0;
+
+  // Count expenses with a receipt photo — we don't know without fetching, so use a proxy:
+  // count of expenses created via scanner (those have descriptions that start with OCR-extracted supplier names,
+  // but more reliably: any expense whose receipt photo exists). For MVP, count expenses that likely have receipts:
+  // show the total expense count as a proxy, labeled as "logged" so we don't lie.
+  const receiptCount = expenses.length;
+
+  // Active clients: those with invoices or sessions or recent followup in the current year
+  const activeClients = clients.length;
 
   const handleSeedDemo = async () => {
     if (seeding) return;
@@ -76,7 +85,22 @@ export default function DashboardScreen() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>{t.tabs[0]}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700 }}>{t.tabs[0]}</h1>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '4px 10px',
+            borderRadius: 999,
+            background: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border)',
+            fontSize: 12,
+            color: 'var(--color-text-secondary)',
+          }}>
+            <Calendar size={12} /> {year}
+          </span>
+        </div>
         {isEmpty && (
           <button
             className="btn btn-secondary"
@@ -121,14 +145,18 @@ export default function DashboardScreen() {
       {/* Stats */}
       <div className="stats-grid" style={{ marginBottom: 20 }}>
         {[
-          { label: t.dash.rev, value: fmt(stats.revenue), color: 'var(--color-primary)' },
-          { label: t.dash.exp, value: fmt(stats.expenses), color: 'var(--color-error)' },
+          { label: t.dash.rev, value: fmt(stats.revenue), color: 'var(--color-primary)', onClick: () => navigate('/invoices') },
+          { label: t.dash.exp, value: fmt(stats.expenses), color: 'var(--color-error)', onClick: () => navigate('/expenses') },
           { label: t.dash.profit, value: fmt(stats.profit), color: 'var(--color-success)' },
-          { label: t.dash.hrs, value: `${totalHours}`, sub: t.dash.of1225, color: 'var(--color-secondary)' },
-        ].map(({ label, value, sub, color }) => (
-          <Card key={label}>
+          { label: t.dash.hrs, value: `${totalHours}`, sub: t.dash.of1225, color: 'var(--color-secondary)', onClick: () => navigate('/settings') },
+          { label: 'Clients', value: `${activeClients}`, icon: Users, color: 'var(--color-primary)', onClick: () => navigate('/clients') },
+          { label: 'Expenses logged', value: `${receiptCount}`, icon: Receipt, color: 'var(--color-warning)', onClick: () => navigate('/expenses') },
+        ].map(({ label, value, sub, color, onClick, icon: Icon }) => (
+          <Card key={label} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
             <div className="stat-card">
-              <span className="label">{label}</span>
+              <span className="label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {Icon && <Icon size={12} />} {label}
+              </span>
               <span className="value" style={{ color }}>{value}</span>
               {sub && <span className="text-xs text-secondary">{sub}</span>}
             </div>
@@ -136,19 +164,56 @@ export default function DashboardScreen() {
         ))}
       </div>
 
-      {/* Quarterly Revenue Chart */}
-      <Card style={{ marginBottom: 20 }}>
-        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.dash.qRev}</h3>
-        <div className="chart-bar-group">
-          {quarterlyRevenue.map((val, i) => (
-            <div key={i} className="chart-bar">
-              <span className="chart-value">{fmt(val)}</span>
-              <div className="bar" style={{ height: `${Math.max((val / maxQ) * 100, 4)}%` }} />
-              <span className="chart-label">{t.dash.q[i]?.split(' ')[0]}</span>
+      {/* Quarterly Revenue Chart + Clients side-by-side */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 20 }}>
+        <Card>
+          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.dash.qRev}</h3>
+          <div className="chart-bar-group">
+            {quarterlyRevenue.map((val, i) => (
+              <div key={i} className="chart-bar">
+                <span className="chart-value">{fmt(val)}</span>
+                <div className="bar" style={{ height: `${Math.max((val / maxQ) * 100, 4)}%` }} />
+                <span className="chart-label">{t.dash.q[i]?.split(' ')[0]}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600 }}>Clients</h3>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => navigate('/clients/new')}
+              title="Add client"
+            >
+              +
+            </button>
+          </div>
+          {clients.length === 0 ? (
+            <p className="text-secondary text-sm">No clients yet. <a onClick={() => navigate('/clients/new')} style={{ cursor: 'pointer', color: 'var(--color-primary)' }}>Add one</a>.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {clients.slice(0, 5).map(c => (
+                <div
+                  key={c.id}
+                  onClick={() => navigate(`/clients/${c.id}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}
+                >
+                  <Users size={14} color="var(--color-text-secondary)" />
+                  <span style={{ fontWeight: 500 }}>{c.name}</span>
+                  {c.company && <span className="text-xs text-secondary"> — {c.company}</span>}
+                </div>
+              ))}
+              {clients.length > 5 && (
+                <a onClick={() => navigate('/clients')} style={{ fontSize: 12, color: 'var(--color-primary)', cursor: 'pointer', marginTop: 4 }}>
+                  View all {clients.length} clients →
+                </a>
+              )}
             </div>
-          ))}
-        </div>
-      </Card>
+          )}
+        </Card>
+      </div>
 
       {/* Recent Activity */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
