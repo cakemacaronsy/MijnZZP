@@ -1,15 +1,21 @@
-import { useContext, useState, useRef } from 'react';
+import { useContext, useState, useRef, useEffect } from 'react';
 import { AppContext } from '../hooks/useAppData';
 import { useTranslation } from '../hooks/useTranslation';
 import { fmt } from '../utils/format';
 import { parseCSV } from '../utils/csv';
 import Card from '../components/shared/Card';
 import { useToast } from '../components/shared/Toast';
-import { Upload, Check, X, FileSpreadsheet, ArrowDownCircle, ArrowUpCircle, AlertCircle } from 'lucide-react';
+import {
+  getImportHistory,
+  addImportRecord,
+  removeImportRecord,
+  analyzeTransactions,
+} from '../services/import-history';
+import { Upload, Check, X, FileSpreadsheet, ArrowDownCircle, ArrowUpCircle, AlertCircle, History, Trash2, Calendar } from 'lucide-react';
 import '../components/shared/shared.css';
 
 export default function BankImportScreen() {
-  const { saveExpense, refresh } = useContext(AppContext);
+  const { saveExpense, refresh, user, settings, updateSettings } = useContext(AppContext);
   const { t } = useTranslation();
   const toast = useToast();
   const fileInputRef = useRef(null);
@@ -23,6 +29,13 @@ export default function BankImportScreen() {
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState('');
   const [importedCount, setImportedCount] = useState(0);
+  const [analysis, setAnalysis] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  // Load import history on mount and whenever user changes
+  useEffect(() => {
+    setHistory(getImportHistory(user?.id));
+  }, [user?.id]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -53,6 +66,10 @@ export default function BankImportScreen() {
         if (tx.amount < 0) defaultSelected.add(i);
       });
       setSelected(defaultSelected);
+
+      // Analyze years to warn user if they're viewing a different year
+      const a = analyzeTransactions(parsed);
+      setAnalysis(a);
       toast.success(`Found ${parsed.length} transactions (${defaultSelected.size} selected)`);
     } catch (err) {
       console.error('CSV parse error:', err);
@@ -116,13 +133,36 @@ export default function BankImportScreen() {
         }
         setImportProgress(i + 1);
       }
+      // Log import history (localStorage, per-user)
+      const importedTxs = [...selected].map(i => transactions[i]).filter(Boolean);
+      const totalAmount = importedTxs.reduce((s, tx) => s + Math.abs(tx.amount || 0), 0);
+      addImportRecord({
+        userId: user?.id || null,
+        filename: fileName || 'import.csv',
+        count: ok,
+        failedCount: failed,
+        totalAmount,
+        dateRange: analysis?.dateRange || null,
+        dominantYear: analysis?.dominantYear || null,
+        yearCounts: analysis?.yearCounts || {},
+      });
+      setHistory(getImportHistory(user?.id));
+
       setImportedCount(ok);
       setDone(true);
       await refresh();
+
       if (failed > 0) {
         toast.error(`Imported ${ok}/${total} — ${failed} failed. Check console.`);
       } else {
         toast.success(`Imported ${ok} transactions as expenses`);
+      }
+
+      // Prompt to switch year if imported data is in a different year
+      if (analysis?.dominantYear && analysis.dominantYear !== settings.year) {
+        toast.info(
+          `Most transactions are from ${analysis.dominantYear}. Switch year in the sidebar to view them.`
+        );
       }
     } catch (err) {
       console.error('Import failed:', err);
@@ -204,6 +244,32 @@ export default function BankImportScreen() {
                 transition: 'width 0.2s',
               }}
             />
+          </div>
+        </Card>
+      )}
+
+      {/* Year mismatch warning */}
+      {analysis?.dominantYear && analysis.dominantYear !== settings.year && transactions.length > 0 && !done && (
+        <Card style={{ marginBottom: 20, borderLeft: '3px solid var(--color-warning)' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <Calendar size={20} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>
+                Year mismatch
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 8 }}>
+                Most transactions are from <strong>{analysis.dominantYear}</strong> but you're currently viewing <strong>{settings.year}</strong> on the dashboard. Imported expenses won't appear until you switch year.
+              </p>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={async () => {
+                  await updateSettings({ year: analysis.dominantYear });
+                  toast.success(`Switched to ${analysis.dominantYear}`);
+                }}
+              >
+                Switch to {analysis.dominantYear}
+              </button>
+            </div>
           </div>
         </Card>
       )}
@@ -299,18 +365,85 @@ export default function BankImportScreen() {
 
       {/* Done state */}
       {done && (
-        <Card style={{ textAlign: 'center', padding: 40 }}>
+        <Card style={{ textAlign: 'center', padding: 40, marginBottom: 20 }}>
           <Check size={48} color="var(--color-success)" style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
             {importedCount} transactions imported as expenses
           </p>
           <button
             className="btn btn-secondary"
-            onClick={() => { setTransactions([]); setSelected(new Set()); setFileName(''); setDone(false); setImportedCount(0); setImportProgress(0); }}
+            onClick={() => { setTransactions([]); setSelected(new Set()); setFileName(''); setDone(false); setImportedCount(0); setImportProgress(0); setAnalysis(null); }}
             style={{ marginTop: 12 }}
           >
             Import More
           </button>
+        </Card>
+      )}
+
+      {/* Import History */}
+      {history.length > 0 && (
+        <Card>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <History size={18} />
+            <h3 style={{ fontSize: 15, fontWeight: 600 }}>Import History</h3>
+            <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>({history.length})</span>
+          </div>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>File</th>
+                  <th style={{ textAlign: 'right' }}>Transactions</th>
+                  <th>Period</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                  <th style={{ width: 40 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((rec) => (
+                  <tr key={rec.id}>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {new Date(rec.importedAt).toLocaleDateString()}
+                      <span style={{ color: 'var(--color-text-secondary)', marginLeft: 6, fontSize: 12 }}>
+                        {new Date(rec.importedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {rec.filename}
+                    </td>
+                    <td className="mono" style={{ textAlign: 'right' }}>
+                      {rec.count}
+                      {rec.failedCount > 0 && (
+                        <span style={{ color: 'var(--color-error)', marginLeft: 4 }}>(+{rec.failedCount} failed)</span>
+                      )}
+                    </td>
+                    <td style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                      {rec.dateRange
+                        ? `${rec.dateRange.from} → ${rec.dateRange.to}`
+                        : rec.dominantYear || '-'}
+                    </td>
+                    <td className="mono" style={{ textAlign: 'right' }}>{fmt(rec.totalAmount || 0)}</td>
+                    <td>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        title="Remove from history"
+                        onClick={() => {
+                          removeImportRecord(rec.id);
+                          setHistory(getImportHistory(user?.id));
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 10 }}>
+            Removing from history does not delete imported expenses — manage those in the Expenses tab.
+          </p>
         </Card>
       )}
     </div>
